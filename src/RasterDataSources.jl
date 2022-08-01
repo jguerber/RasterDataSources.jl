@@ -8,7 +8,8 @@ end RasterDataSources
 using Dates,
       HTTP,
       URIs,
-      ZipFile
+      ZipFile,
+      JSON
 
 export WorldClim, CHELSA, EarthEnv, AWAP, ALWB, SRTM, MODIS
 
