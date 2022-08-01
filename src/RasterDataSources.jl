@@ -9,7 +9,8 @@ using Dates,
       HTTP,
       URIs,
       ZipFile,
-      JSON
+      JSON,
+      DataFrames
 
 export WorldClim, CHELSA, EarthEnv, AWAP, ALWB, SRTM, MODIS
 
