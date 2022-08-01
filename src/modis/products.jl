@@ -63,8 +63,49 @@ function list_dates(T::Type{<:ModisProduct};
     lat::Real,
     lon::Real,
     from::String = "all", # might be handy
-    to::String = "all")
+    to::String = "all",
+    format::String = "Date")
 
     prod = product(T)
-    ondisk = true
+    
+    @info "Requesting availables dates for product $prod at $lat , $lon"
+
+    r = HTTP.request(
+        "GET",
+        joinpath(string(MODIS_URI), prod, "dates"),
+        query = Dict(
+            "latitude" => string(lat),
+            "longitude" => string(lon)
+        )
+    )
+
+    body = JSON.parse(String(r.body))
+
+    #prebuild columns
+    df = DataFrame(
+        calendar_date=String[],
+        modis_date=String[]
+    )
+
+    # fill
+    for date in body["dates"]
+        push!(df, date; cols=:subset)
+    end
+
+    df.calendar_date = Date.(df.calendar_date)
+        
+    from == "all" && (from = df[1, :calendar_date])
+    to == "all" && (to = df[end, :calendar_date])
+
+    df = subset(
+        df,
+        :calendar_date => d -> Date(to) .>= d,
+        :calendar_date => d -> d .>= Date(from)  
+        )
+
+    if format == "ModisDate"
+        return df[:, :modis_date]
+    else
+        return df[:, :calendar_date]
+    end
 end
