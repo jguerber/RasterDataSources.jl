@@ -10,7 +10,8 @@ using Dates,
       URIs,
       ZipFile,
       JSON,
-      DataFrames
+      DataFrames,
+      ArchGDAL
 
 export WorldClim, CHELSA, EarthEnv, AWAP, ALWB, SRTM, MODIS
 
@@ -75,5 +76,6 @@ include("srtm/srtm.jl")
 
 include("modis/shared.jl")
 include("modis/products.jl")
+include("modis/utilities.jl")
 
 end # module
