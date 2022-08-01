@@ -26,23 +26,17 @@ function list_layers(T::Type{<:ModisProduct})
     
     prod = product(T)
 
-    ondisk = true # flag for trying to read the layers file
-
     path = joinpath(
         ENV["RASTERDATASOURCES_PATH"],
         "MODIS/layers",
         prod*".csv"
     )
 
-    layers = try
-        open(path, "r") do f
+    if isfile(path)
+        layers = open(path, "r") do f
             readline(f)
         end
-    catch
-        ondisk = false
-    end
-
-    if !ondisk # if not on disk we download layers info
+    else # if not on disk we download layers info
         
         @info "Starting download of layers list for product $prod"
         mkpath(dirname(path))
@@ -60,4 +54,17 @@ function list_layers(T::Type{<:ModisProduct})
     end
 
     return split(String(layers), ",")
+end
+
+"""
+    List available dates for a MODIS product at given coordinates
+"""
+function list_dates(T::Type{<:ModisProduct};
+    lat::Real,
+    lon::Real,
+    from::String = "all", # might be handy
+    to::String = "all")
+
+    prod = product(T)
+    ondisk = true
 end
