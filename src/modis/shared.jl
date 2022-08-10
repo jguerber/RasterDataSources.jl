@@ -65,9 +65,13 @@ function get_raster(T::Type{<:ModisProduct}, layer::Union{Tuple, Symbol, Int};
     )
 end
 
-function _get_raster(T::Type{<:ModisProduct}, layer::Symbol;
-    kwargs...
-)
+# if layer is a tuple, get them all using _map_layers
+function _get_raster(T::Type{<:ModisProduct}, layer::Tuple; kwargs...)
+    _map_layers(T, layers; kwargs)
+end
+
+# convert layer symbols to int
+function _get_raster(T::Type{<:ModisProduct}, layer::Symbol; kwargs...)
     _get_raster(T, modis_int(T, layer); kwargs)
 end
 
@@ -82,7 +86,9 @@ function _get_raster(T::Type{<:ModisProduct}, layer::Int;
     dates = list_dates(T;
         lat = lat,
         lon = lon,
-        format = "Date"
+        format = "Date",
+        from = from,
+        to = to
     )
 
     if length(dates) <= 10
@@ -94,8 +100,35 @@ function _get_raster(T::Type{<:ModisProduct}, layer::Int;
             dates = dates
         )
     else
+        # take "chunk" subsets of dates 10 by 10
+        n_chunks = div(length(dates), 10) +1
 
+        chunks = [dates[1+10*k:(k == n_chunks -1 ? end : 10*k+10) for k in 0:(n_chunks-1)]]
+
+        files = map(chunks) do c
+            _get_raster(T, layer;
+                dates = c,
+                kwargs
+            )
+        end
     end
+
+    return files
+end
+
+# map over several dates
+function _get_raster(T::Type{<:ModisProduct}, layer::Int;
+    dates::Vector{String},
+    kwargs...
+)
+    files = map(dates) do d
+            _get_raster(T, layer;
+            date = d,
+            kwargs
+        )
+    end
+
+    return files
 end
 
 function rasterpath(T::Type{<:ModisProduct})
