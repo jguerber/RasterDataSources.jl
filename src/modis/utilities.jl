@@ -132,23 +132,26 @@ function process_subset(T::Type{<:ModisProduct}, df::DataFrame)
     yllcorner = parse(Float64, df[1, :yllcorner])
 
     # build a bounding box for the raster(s)
-    lat, lon = sin_to_ll(xllcorner, yllcorner)
+    lon, lat = sin_to_ll(xllcorner, yllcorner)
         
     resolution = meters_to_latlon(
         cellsize,
         lat
     ) # pixel size in (latitudinal, longitudinal) degrees
 
-    bbox = [lat, resolution[1], 0.0, lon, resolution[2], 0.0]
+    bbox = [lon, resolution[1], 0.0, lat, 0.0, resolution[2]]
     
     raster_path = rasterpath(T)
-    raster_name = rastername(T;
-        lat = lat,
-        lon = lon,
-        date = dates[1]
-    )
+
+    path_out = String[]
 
     for d in eachindex(dates)
+
+        raster_name = rastername(T;
+            lat = lat,
+            lon = lon,
+            date = dates[d]
+        )
 
         ar = Array{Float64}(undef, nrows, ncols, length(bands))
         
@@ -189,7 +192,13 @@ function process_subset(T::Type{<:ModisProduct}, df::DataFrame)
             # set bounding box
             ArchGDAL.setgeotransform!(dataset, bbox)
             # set crs
-            ArchGDAL.setproj!(dataset, "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+            ArchGDAL.setproj!(dataset, ArchGDAL.toWKT(
+                ArchGDAL.importPROJ4("+proj=latlong +ellps=WGS84 +datum=WGS84 +no_defs"))
+            )
         end
+
+        push!(path_out, joinpath(raster_path, raster_name))
     end
+
+    return path_out
 end
