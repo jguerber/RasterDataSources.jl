@@ -47,7 +47,7 @@ end
 
 layers(T::Type{<:ModisProduct}) = layers(MODIS{T})
 
-function get_raster(T::Type{<:ModisProduct}, layer::Union{Tuple, Symbol, Int};
+function getraster(T::Type{<:ModisProduct}, layer::Union{Tuple, Symbol, Int};
     lat::Real,
     lon::Real,
     km_ab::Int,
@@ -55,7 +55,8 @@ function get_raster(T::Type{<:ModisProduct}, layer::Union{Tuple, Symbol, Int};
     from::Union{String, Date},
     to::Union{String, Date}
 )
-    _get_raster(T, layer;
+    println("yo")
+    _getraster(T, layer;
         lat = lat,
         lon = lon,
         km_ab = km_ab,
@@ -66,16 +67,17 @@ function get_raster(T::Type{<:ModisProduct}, layer::Union{Tuple, Symbol, Int};
 end
 
 # if layer is a tuple, get them all using _map_layers
-function _get_raster(T::Type{<:ModisProduct}, layer::Tuple; kwargs...)
-    _map_layers(T, layers; kwargs)
+function _getraster(T::Type{<:ModisProduct}, layer::Tuple; kwargs...)
+    _map_layers(T, layers; kwargs...)
 end
 
 # convert layer symbols to int
-function _get_raster(T::Type{<:ModisProduct}, layer::Symbol; kwargs...)
-    _get_raster(T, modis_int(T, layer); kwargs)
+function _getraster(T::Type{<:ModisProduct}, layer::Symbol; kwargs...)
+    println("hey")
+    _getraster(T, modis_int(T, layer); kwargs...)
 end
 
-function _get_raster(T::Type{<:ModisProduct}, layer::Int;
+function _getraster(T::Type{<:ModisProduct}, layer::Int;
     lat::Real,
     lon::Real,
     km_ab::Int,
@@ -86,13 +88,14 @@ function _get_raster(T::Type{<:ModisProduct}, layer::Int;
     dates = list_dates(T;
         lat = lat,
         lon = lon,
-        format = "Date",
+        format = "ModisDate",
         from = from,
         to = to
     )
 
     if length(dates) <= 10
-        _get_raster(T, layer;
+        println("coucou")
+        files =_getrasterchunk(T, layer;
             lat = lat,
             lon = lon,
             km_ab = km_ab,
@@ -106,9 +109,10 @@ function _get_raster(T::Type{<:ModisProduct}, layer::Int;
         chunks = [dates[1+10*k:(k == n_chunks -1 ? end : 10*k+10) for k in 0:(n_chunks-1)]]
 
         files = map(chunks) do c
-            _get_raster(T, layer;
+            println(c)
+            _getrasterchunk(T, layer;
                 dates = c,
-                kwargs
+                kwargs...
             )
         end
     end
@@ -116,19 +120,18 @@ function _get_raster(T::Type{<:ModisProduct}, layer::Int;
     return files
 end
 
-# map over several dates
-function _get_raster(T::Type{<:ModisProduct}, layer::Int;
+# this should always receive less than 10 dates
+function _getrasterchunk(T::Type{<:ModisProduct}, layer::Int;
     dates::Vector{String},
     kwargs...
 )
-    files = map(dates) do d
-            _get_raster(T, layer;
-            date = d,
-            kwargs
-        )
-    end
+    length(dates) > 10 && throw("Too many dates provided. Use from and to arguments")
 
-    return files
+    df = modis_request(
+        T, list_layers(T)[layer], kwargs[:lat], kwargs[:lon], kwargs[:km_ab], kwargs[:km_lr], dates[1], dates[end]
+    )
+
+    return df
 end
 
 function rasterpath(T::Type{<:ModisProduct})
