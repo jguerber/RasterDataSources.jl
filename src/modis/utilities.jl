@@ -9,7 +9,7 @@ adds more dependencies..
 """
 
 function modis_int(T::Type{<:ModisProduct}, l::Symbol)
-    keys = listkeys(T)
+    keys = layerkeys(T)
     for i in eachindex(keys)
         keys[i] === l && return(i)
     end 
@@ -37,7 +37,8 @@ function modis_request(
         "startDate" => string(from),
         "endDate" => string(to),
         "kmAboveBelow" => string(km_ab),
-        "kmLeftRight" => string(km_lr)
+        "kmLeftRight" => string(km_lr),
+        "band" => string(layer)
     )))
 
     r = HTTP.request(
