@@ -55,7 +55,6 @@ function getraster(T::Type{<:ModisProduct}, layer::Union{Tuple, Symbol, Int};
     from::Union{String, Date},
     to::Union{String, Date}
 )
-    println("yo")
     _getraster(T, layer;
         lat = lat,
         lon = lon,
@@ -73,7 +72,6 @@ end
 
 # convert layer symbols to int
 function _getraster(T::Type{<:ModisProduct}, layer::Symbol; kwargs...)
-    println("hey")
     _getraster(T, modis_int(T, layer); kwargs...)
 end
 
@@ -94,8 +92,7 @@ function _getraster(T::Type{<:ModisProduct}, layer::Int;
     )
 
     if length(dates) <= 10
-        println("coucou")
-        files =_getrasterchunk(T, layer;
+        files = _getrasterchunk(T, layer;
             lat = lat,
             lon = lon,
             km_ab = km_ab,
