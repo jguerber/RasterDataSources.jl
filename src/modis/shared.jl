@@ -42,7 +42,12 @@ end
 layerkeys(T::Type{<:ModisProduct}) = layerkeys(MODIS{T})
 
 function layerkeys(T::Type{<:MODIS{X}}, layers::Tuple) where X
-    layerkeys(T)[collect(layers)]
+    if isa(layers[1], Int) # integer layer names get their key name
+        layerkeys(T)[collect(layers)]
+    else # if all elements of layers are correct layer keys, return them
+        all(k -> k in layerkeys(T), layers) && return(layers)
+        throw("Unknown layers in $layers")
+    end
 end
 
 layerkeys(T::Type{<:ModisProduct}, layers) = layerkeys(MODIS{T}, layers)
@@ -114,16 +119,19 @@ function _getraster(T::Type{<:ModisProduct}, layer::Int;
     else
         # take "chunk" subsets of dates 10 by 10
         n_chunks = div(length(dates), 10) +1
-
-        chunks = [dates[1+10*k:(k == n_chunks -1 ? end : 10*k+10) for k in 0:(n_chunks-1)]]
+        chunks = [dates[1+10*k:(k == n_chunks -1 ? end : 10*k+10)] for k in 0:(n_chunks-1)]
 
         files = map(chunks) do c
-            println(c)
-            _getrasterchunk(T, layer;
+            length(c) > 0 && _getrasterchunk(T, layer;
                 dates = c,
-                kwargs...
+                lat = lat,
+                lon = lon,
+                km_ab = km_ab,
+                km_lr = km_lr
             )
         end
+
+        files = vcat(files...) # splat chunks to get only one list
     end
 
     return files
