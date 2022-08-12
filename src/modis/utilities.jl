@@ -227,6 +227,8 @@ function process_subset(T::Type{<:ModisProduct}, df::DataFrame)
             
             mat = Matrix{Float64}(undef, nrows, ncols)
 
+            filepath = joinpath(raster_path, bands[b], raster_name)
+
             # fill matrix row by row
             count = 1
             for j in 1:ncols
@@ -238,11 +240,12 @@ function process_subset(T::Type{<:ModisProduct}, df::DataFrame)
 
             ar[:,:,b] = mat
 
-            mkpath(joinpath(raster_path, bands[b]))
+            mkpath(dirname(filepath))
 
-            if !isfile(raster_path, bands[b], raster_name)
+            if !isfile(filepath)
+                @info "Creating raster file $(basename(filepath)) in $(dirname(filepath))"
                 ArchGDAL.create(
-                    joinpath(raster_path, bands[b], raster_name),
+                    filepath,
                     driver = ArchGDAL.getdriver("GTiff"),
                     width = ncols,
                     height = nrows,
@@ -258,6 +261,8 @@ function process_subset(T::Type{<:ModisProduct}, df::DataFrame)
                         ArchGDAL.importPROJ4("+proj=latlong +ellps=WGS84 +datum=WGS84 +no_defs"))
                     )
                 end
+            else
+                @info "Raster file $(basename(filepath)) already exists in $(dirname(filepath))"
             end
 
             push!(path_out, joinpath(raster_path, bands[b], raster_name))
