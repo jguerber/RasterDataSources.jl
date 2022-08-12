@@ -184,6 +184,10 @@ end
 
 """
     Process a raw subset dataframe and create several rasters
+
+For each band, a separate folder is created, containing a file for each of
+the required dates. This is inspired by the way WorldClim{Climate} treats the
+problem of possibly having to download several dates AND bands.
 """
 function process_subset(T::Type{<:ModisProduct}, df::DataFrame)
     
@@ -242,13 +246,11 @@ function process_subset(T::Type{<:ModisProduct}, df::DataFrame)
                     driver = ArchGDAL.getdriver("GTiff"),
                     width = ncols,
                     height = nrows,
-                    nbands = length(bands),
+                    nbands = 1,
                     dtype = Float32
                 ) do dataset
                     # add data to object
-                    for b in eachindex(bands)
-                        ArchGDAL.write!(dataset, mat, 1)
-                    end
+                    ArchGDAL.write!(dataset, mat, 1)
                     # set geotransform
                     ArchGDAL.setgeotransform!(dataset, gt)
                     # set crs
