@@ -8,6 +8,9 @@ Data parsing is way easier using JSON.jl and DataFrames.jl but it
 adds more dependencies..
 """
 
+"""
+    Convert layer key Symbol to integer
+"""
 function modis_int(T::Type{<:ModisProduct}, l::Symbol)
     keys = layerkeys(T)
     for i in eachindex(keys)
@@ -78,11 +81,19 @@ function modis_request(
 
     return out
 end
+ 
+"""
+    Convert x and y in sinusoidal projection to lat and lon in dec. degrees
 
-# using EPSG.io API (found on GitHub)
+The EPSG.io API (https://github.com/maptiler/epsg.io) takes care of coordinate
+conversions. This is not ideal in terms of network use but at least the
+coordinates are correct.
+"""
 function sin_to_ll(x::Real, y::Real)
 
     url = "https://epsg.io/trans"
+
+    @info "Asking EPSG.io for coordinates calculation"
 
     query = Dict(
         "x" => string(x),
@@ -116,6 +127,61 @@ function meters_to_latlon(d::Real, lat::Real)
     return (dlat, dlon)
 end
 
+function maybe_build_gt(
+    xllcorner::Real,
+    yllcorner::Real,
+    nrows::Int,
+    cellsize::Real
+)
+    filepath = joinpath(
+        rasterpath(),
+        "MODIS",
+        "geotransforms",
+        string(xllcorner) * "," * string(yllcorner) * "," * string(cellsize) * ".csv"
+    )
+
+    if isfile(filepath)
+        gt_str = open(filepath) do f
+            readline(f)
+        end
+        gt = parse.(Float64, split(gt_str, ","))
+    else ## Build geotransform : modis provides lower-left corner 
+        # coordinates in sin projection ; we want upper-left in WGS84
+
+        # convert coordinates
+        lat, lon = sin_to_ll(xllcorner, yllcorner)
+
+        # convert cell size in meters to degress in lat and lon directions
+        resolution = meters_to_latlon(
+            cellsize,
+            lat
+        ) # watch out, this is a Tuple{Float64, Float64}
+
+        # build the geotransform 
+        # (https://yeesian.com/ArchGDAL.jl/stable/quickstart/#Dataset-Georeferencing)
+
+        gt = [
+            lon - resolution[2]/2, # left longitude
+            resolution[2], # lon resolution in degrees
+            0.0, # no rotation
+            lat + nrows*resolution[1] - resolution[1]/2, # up latitude
+            0.0, # no rotation (yes, this order)
+            -resolution[1] # lat resolution in degrees, negative because the data
+            # matrix is south-up oriented
+        ]
+
+        # store gt
+
+        gt_str = join(string.(gt), ",")
+        mkpath(dirname(filepath))
+        open(filepath, "w") do f
+            write(f, gt_str)
+        end
+    end
+
+    return gt
+end
+
 """
     Process a raw subset dataframe and create several rasters
 """
@@ -132,30 +198,8 @@ function process_subset(T::Type{<:ModisProduct}, df::DataFrame)
     xllcorner = parse(Float64, df[1, :xllcorner])
     yllcorner = parse(Float64, df[1, :yllcorner])
 
-    ## Build geotransform : modis provides lower-left corner coordinates in sin 
-    # projection ; we want upper-left in WGS84 projection
+    gt = maybe_build_gt(xllcorner, yllcorner, nrows, cellsize)
 
-    # convert coordinates
-    lat, lon = sin_to_ll(xllcorner, yllcorner)
-
-    # convert cell size in meters to degress in lat and lon directions
-    resolution = meters_to_latlon(
-        cellsize,
-        lat
-    ) # watch out, this is a Tuple{Float64, Float64}
-
-    # build the geotransform 
-    # (https://yeesian.com/ArchGDAL.jl/stable/quickstart/#Dataset-Georeferencing)
-
-    bbox = [
-        lon - resolution[2]/2, # left longitude
-        resolution[2], # lon resolution in degrees
-        0.0, # no rotation
-        lat + nrows*resolution[1] - resolution[1]/2, # up latitude
-        0.0, # no rotation (yes, this order)
-        -resolution[1] # lat resolution in degrees, negative because the data
-        # matrix is south-up oriented
-    ]
     raster_path = rasterpath(T)
 
     path_out = String[]
@@ -163,8 +207,8 @@ function process_subset(T::Type{<:ModisProduct}, df::DataFrame)
     for d in eachindex(dates)
 
         raster_name = rastername(T;
-            lat = lat,
-            lon = lon,
+            lat = gt[4],
+            lon = gt[1],
             date = dates[d]
         )
 
@@ -205,8 +249,8 @@ function process_subset(T::Type{<:ModisProduct}, df::DataFrame)
                     for b in eachindex(bands)
                         ArchGDAL.write!(dataset, mat, 1)
                     end
-                    # set bounding box
-                    ArchGDAL.setgeotransform!(dataset, bbox)
+                    # set geotransform
+                    ArchGDAL.setgeotransform!(dataset, gt)
                     # set crs
                     ArchGDAL.setproj!(dataset, ArchGDAL.toWKT(
                         ArchGDAL.importPROJ4("+proj=latlong +ellps=WGS84 +datum=WGS84 +no_defs"))
