@@ -132,16 +132,30 @@ function process_subset(T::Type{<:ModisProduct}, df::DataFrame)
     xllcorner = parse(Float64, df[1, :xllcorner])
     yllcorner = parse(Float64, df[1, :yllcorner])
 
-    # build a bounding box for the raster(s)
-    lon, lat = sin_to_ll(xllcorner, yllcorner)
-        
+    ## Build geotransform : modis provides lower-left corner coordinates in sin 
+    # projection ; we want upper-left in WGS84 projection
+
+    # convert coordinates
+    lat, lon = sin_to_ll(xllcorner, yllcorner)
+
+    # convert cell size in meters to degress in lat and lon directions
     resolution = meters_to_latlon(
         cellsize,
         lat
-    ) # pixel size in (latitudinal, longitudinal) degrees
+    ) # watch out, this is a Tuple{Float64, Float64}
 
-    bbox = [lat - resolution[1]/2, resolution[1], 0.0, lon - resolution[2]/2, 0.0, -resolution[2]]
-    
+    # build the geotransform 
+    # (https://yeesian.com/ArchGDAL.jl/stable/quickstart/#Dataset-Georeferencing)
+
+    bbox = [
+        lon - resolution[2]/2, # left longitude
+        resolution[2], # lon resolution in degrees
+        0.0, # no rotation
+        lat + nrows*resolution[1] - resolution[1]/2, # up latitude
+        0.0, # no rotation (yes, this order)
+        -resolution[1] # lat resolution in degrees, negative because the data
+        # matrix is south-up oriented
+    ]
     raster_path = rasterpath(T)
 
     path_out = String[]
