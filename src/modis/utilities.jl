@@ -200,7 +200,7 @@ function process_subset(T::Type{<:ModisProduct}, df::DataFrame)
                 end
             end
 
-            push!(path_out, joinpath(raster_path, raster_name))
+            push!(path_out, joinpath(raster_path, bands[b], raster_name))
 
         end
     end
