@@ -67,33 +67,56 @@ function list_dates(T::Type{<:ModisProduct};
     format::String = "Date")
 
     prod = product(T)
-    
-    @info "Requesting availables dates for product $prod at $lat , $lon"
 
-    r = HTTP.request(
-        "GET",
-        joinpath(string(MODIS_URI), prod, "dates"),
-        query = Dict(
-            "latitude" => string(lat),
-            "longitude" => string(lon)
+    filepath = joinpath(
+        rasterpath(),
+        "MODIS/dates",
+        string(lat)*","*string(lon)*".csv"
+    )
+
+    if !isfile(filepath) # we need to download dates from the server
+
+        mkpath(dirname(filepath))
+        @info "Requesting availables dates for product $prod at $lat , $lon"
+
+        ## Get all dates at given point
+        # request
+        r = HTTP.request(
+            "GET",
+            joinpath(string(MODIS_URI), prod, "dates"),
+            query = Dict(
+                "latitude" => string(lat),
+                "longitude" => string(lon)
+            )
         )
-    )
 
-    body = JSON.parse(String(r.body))
+        # parse
+        body = JSON.parse(String(r.body))
 
-    #prebuild columns
-    df = DataFrame(
-        calendar_date=String[],
-        modis_date=String[]
-    )
+        # prebuild columns
+        df = DataFrame(
+            calendar_date=String[],
+            modis_date=String[]
+        )
 
-    # fill
-    for date in body["dates"]
-        push!(df, date; cols=:subset)
+        # fill the DataFrame
+        for date in body["dates"]
+            push!(df, date; cols=:subset)
+        end
+
+        # write to disk
+        CSV.write(filepath, df)
+    else # a file with dates is already downloaded
+        df = CSV.read(filepath, DataFrame;
+            header = 1,
+            types = String
+        ) # we simply read the file
     end
 
+    ## Filter for dates between from and to arguments
+
     df.calendar_date = Date.(df.calendar_date)
-        
+            
     from == "all" && (from = df[1, :calendar_date])
     to == "all" && (to = df[end, :calendar_date])
 
