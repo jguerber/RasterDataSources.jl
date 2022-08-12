@@ -47,6 +47,12 @@ end
 
 layers(T::Type{<:ModisProduct}) = layers(MODIS{T})
 
+function getraster(T::Type{<:MODIS{X}}, args...; kwargs...) where X
+    X <: ModisProduct ?
+        getraster(X, args...; kwargs...) :
+        throw("Unrecognized MODIS product.")
+end 
+
 function getraster(T::Type{<:ModisProduct}, layer::Union{Tuple, Symbol, Int};
     lat::Real,
     lon::Real,
@@ -66,7 +72,7 @@ function getraster(T::Type{<:ModisProduct}, layer::Union{Tuple, Symbol, Int};
 end
 
 # if layer is a tuple, get them all using _map_layers
-function _getraster(T::Type{<:ModisProduct}, layer::Tuple; kwargs...)
+function _getraster(T::Type{<:ModisProduct}, layers::Tuple; kwargs...)
     _map_layers(T, layers; kwargs...)
 end
 
@@ -128,7 +134,9 @@ function _getrasterchunk(T::Type{<:ModisProduct}, layer::Int;
         T, list_layers(T)[layer], kwargs[:lat], kwargs[:lon], kwargs[:km_ab], kwargs[:km_lr], dates[1], dates[end]
     )
 
-    return df
+    out = process_subset(T, df)
+
+    return out
 end
 
 function rasterpath(T::Type{<:ModisProduct})

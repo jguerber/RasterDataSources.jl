@@ -140,7 +140,7 @@ function process_subset(T::Type{<:ModisProduct}, df::DataFrame)
         lat
     ) # pixel size in (latitudinal, longitudinal) degrees
 
-    bbox = [lon, resolution[1], 0.0, lat, 0.0, resolution[2]]
+    bbox = [lat, resolution[1], 0.0, lon, 0.0, -resolution[2]]
     
     raster_path = rasterpath(T)
 
@@ -167,7 +167,7 @@ function process_subset(T::Type{<:ModisProduct}, df::DataFrame)
 
             # fill matrix row by row
             count = 1
-            for j in reverse(1:ncols) # flip y axis
+            for j in 1:ncols
                 for i in 1:nrows
                     mat[i,j] = float(sub_df[count, :data])
                     count += 1
@@ -184,7 +184,7 @@ function process_subset(T::Type{<:ModisProduct}, df::DataFrame)
             width = ncols,
             height = nrows,
             nbands = length(bands),
-            dtype = Float64
+            dtype = Float32
         ) do dataset
             # add data to object
             for b in eachindex(bands)
@@ -201,5 +201,5 @@ function process_subset(T::Type{<:ModisProduct}, df::DataFrame)
         push!(path_out, joinpath(raster_path, raster_name))
     end
 
-    return path_out
+    return (length(path_out) == 1 ? path_out[1] : path_out)
 end
