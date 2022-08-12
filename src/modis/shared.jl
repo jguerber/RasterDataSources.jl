@@ -149,7 +149,7 @@ function rastername(T::Type{<:ModisProduct}, layer::Int; kwargs...)
 end
 
 function rastername(T::Type{<:ModisProduct}; kwargs...)
-    name = "raster_$(kwargs[:lat])_$(kwargs[:lon])_$(kwargs[:date]).tif"
+    name = "$(round(kwargs[:lat], digits = 4))_$(round(kwargs[:lon], digits = 4))_$(kwargs[:date]).tif"
     return name
 end
 
