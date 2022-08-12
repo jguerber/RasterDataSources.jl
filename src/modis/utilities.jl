@@ -140,7 +140,7 @@ function process_subset(T::Type{<:ModisProduct}, df::DataFrame)
         lat
     ) # pixel size in (latitudinal, longitudinal) degrees
 
-    bbox = [lat, resolution[1], 0.0, lon, 0.0, -resolution[2]]
+    bbox = [lat - resolution[1]/2, resolution[1], 0.0, lon - resolution[2]/2, 0.0, -resolution[2]]
     
     raster_path = rasterpath(T)
 
@@ -163,7 +163,7 @@ function process_subset(T::Type{<:ModisProduct}, df::DataFrame)
                 :band => y -> y .== bands[b]
             )
             
-            mat = Matrix{Real}(undef, nrows, ncols)
+            mat = Matrix{Float64}(undef, nrows, ncols)
 
             # fill matrix row by row
             count = 1
@@ -176,29 +176,33 @@ function process_subset(T::Type{<:ModisProduct}, df::DataFrame)
 
             ar[:,:,b] = mat
 
-        end
+            mkpath(joinpath(raster_path, bands[b]))
 
-        ArchGDAL.create(
-            joinpath(raster_path, raster_name),
-            driver = ArchGDAL.getdriver("GTiff"),
-            width = ncols,
-            height = nrows,
-            nbands = length(bands),
-            dtype = Float32
-        ) do dataset
-            # add data to object
-            for b in eachindex(bands)
-                ArchGDAL.write!(dataset, ar[:,:,b], b)
+            if !isfile(raster_path, bands[b], raster_name)
+                ArchGDAL.create(
+                    joinpath(raster_path, bands[b], raster_name),
+                    driver = ArchGDAL.getdriver("GTiff"),
+                    width = ncols,
+                    height = nrows,
+                    nbands = length(bands),
+                    dtype = Float32
+                ) do dataset
+                    # add data to object
+                    for b in eachindex(bands)
+                        ArchGDAL.write!(dataset, mat, 1)
+                    end
+                    # set bounding box
+                    ArchGDAL.setgeotransform!(dataset, bbox)
+                    # set crs
+                    ArchGDAL.setproj!(dataset, ArchGDAL.toWKT(
+                        ArchGDAL.importPROJ4("+proj=latlong +ellps=WGS84 +datum=WGS84 +no_defs"))
+                    )
+                end
             end
-            # set bounding box
-            ArchGDAL.setgeotransform!(dataset, bbox)
-            # set crs
-            ArchGDAL.setproj!(dataset, ArchGDAL.toWKT(
-                ArchGDAL.importPROJ4("+proj=latlong +ellps=WGS84 +datum=WGS84 +no_defs"))
-            )
-        end
 
-        push!(path_out, joinpath(raster_path, raster_name))
+            push!(path_out, joinpath(raster_path, raster_name))
+
+        end
     end
 
     return (length(path_out) == 1 ? path_out[1] : path_out)
