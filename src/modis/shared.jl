@@ -41,6 +41,12 @@ end
 
 layerkeys(T::Type{<:ModisProduct}) = layerkeys(MODIS{T})
 
+function layerkeys(T::Type{<:MODIS{X}}, layers::Tuple) where X
+    layerkeys(T)[collect(layers)]
+end
+
+layerkeys(T::Type{<:ModisProduct}, layers) = layerkeys(MODIS{T}, layers)
+
 function layers(T::Type{MODIS{X}}) where X
     return Tuple(1:length(layerkeys(T)))
 end
