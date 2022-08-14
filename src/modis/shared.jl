@@ -268,6 +268,9 @@ function rastername(T::Type{<:ModisProduct}; kwargs...)
     return name
 end
 
+date_step(T::Type{<:ModisProduct}) = Day(16)
+date_step(T::Type{MODIS{X}}) where X = date_step(X)
+
 
 
 
