@@ -99,7 +99,8 @@ function getraster(T::Type{<:ModisProduct}, layer::Union{Tuple, Symbol, Int}=lay
         lat = lat,
         lon = lon,
         km_ab = km_ab,
-        km_lr = km_lr
+        km_lr = km_lr,
+        date = date
     )
 
     # then pass them to internal functions
