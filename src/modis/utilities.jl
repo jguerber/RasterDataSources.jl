@@ -297,11 +297,11 @@ function process_subset(T::Type{<:ModisProduct}, df::DataFrame)
 end
 
 """
-    check_layers(T::Type{<:ModisProduct}, layers::Union{Tuple, AbstractVector, Symbol, Int}) => nothing
+    check_layers(T::Type{<:ModisProduct}, layers::Union{Tuple, AbstractVector, Symbol, String, Int}) => nothing
 
 Checks if required layers make sense for the MODIS product T.
 """
-function check_layers(T::Type{<:ModisProduct}, layers::Union{Tuple, AbstractVector, Symbol, Int})
+function check_layers(T::Type{<:ModisProduct}, layers::Union{Tuple, AbstractVector, Symbol, String, Int})
     if typeof(layers) <: Tuple || typeof(layers) <: AbstractVector
         for l in layers
             _check_layer(T::Type{<:ModisProduct}, l)
@@ -323,6 +323,12 @@ function _check_layer(T::Type{<:ModisProduct}, layer::Int)
         "Invalid layer $layer for product $T.\nAvailable layers are $(layers(T))"
     ))
     return nothing
+end
+
+function _check_layer(T::Type{<:ModisProduct}, layer::String)
+    !(layer in list_layers(T)) && throw(ArgumentError(
+        "Invalid layer $layer for product $T.\nAvailable layers are $(list_layers(T)).\nProceed with caution while using `String` layers. You might want to use their `Symbol` counterparts."
+    ))
 end
 
 """
