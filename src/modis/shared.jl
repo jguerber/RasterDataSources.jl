@@ -175,6 +175,10 @@ function _getraster(T::Type{<:ModisProduct}, layer::Int,
         to = to
     )
 
+    length(dates) == 0 && throw(
+        "No available $T data at $lat , $lon from $from to $to"
+    )
+
     if length(dates) <= 10
         files = _getrasterchunk(T, layer;
             lat = lat,
