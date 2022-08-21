@@ -82,7 +82,7 @@ Available layers for a given product can be looked up using [`RasterDataSources.
 
 - `km_ab` and `km_lr``: Half-width and half-height of the raster in kilometers. Currently only `Integer` values are supported.
 
-- `date`: `String`, `Date`, `DateTime`, `AbstractVector` or `Tuple` of dates for the request. If `date` is iterable and of length 2, it is considered to contain the start and the end date of the request. `String`s should be in format YYYY-MM-DD but can be in similar formats as long as they are comprehensible by `Dates.Date`. The available date interval for MODIS is 16 days.
+- `date`: `String`, `Date`, `DateTime`, `AbstractVector` of dates or `Tuple` of a start and end date for the request. `String`s should be in format YYYY-MM-DD but can be in similar formats as long as they are comprehensible by `Dates.Date`. The available date interval for MODIS is 16 days, reset every first of January.
 
 Will download several files, one for each date, and returns the filepath/s of the downloaded or pre-existing files.
 """
@@ -272,7 +272,7 @@ date_step(T::Type{<:ModisProduct}) = Day(16)
 date_step(T::Type{MODIS{X}}) where X = date_step(X)
 
 
-function date_sequence(T::Type{<:MODIS{X}}, dates; kw...) where X
+function date_sequence(T::Type{MODIS{X}}, dates; kw...) where X
     date_sequence(X, dates; kw...)
 end
 
