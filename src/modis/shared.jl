@@ -83,7 +83,7 @@ Available layers for a given product can be looked up using [`RasterDataSources.
 
 - `date`: `String`, `Date`, `DateTime`, `AbstractVector` of dates or `Tuple` of a start and end date for the request. `String`s should be in format YYYY-MM-DD but can be in similar formats as long as they are comprehensible by `Dates.Date`. The available date interval for MODIS is 16 days, reset every first of January.
 
-# Examples
+# Example
 
 Download 250m NDVI in the western part of Britanny, France, from winter to late spring, 2002:
 
@@ -96,7 +96,7 @@ julia> getraster(MOD13Q1, :NDVI; lat = 48.25, lon = -4, km_ab = 50, km_lr = 50, 
     "/your/path/MODIS/MOD13Q1/250m_16_days_NDVI/48.6696_-4.5914_2002-05-25.tif"
 ```
 
-Will download several files, one for each date, and returns the filepath/s of the downloaded or pre-existing files. Coordinates in the file names correspond to the upper-left corner of the raster.
+Will attempt to download several files, one for each date and layer combination, and returns the filepath/s of the downloaded or pre-existing files. Coordinates in the file names correspond to the upper-left corner of the raster.
 """
 function getraster(
     T::Type{<:ModisProduct},
