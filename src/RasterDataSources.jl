@@ -11,7 +11,6 @@ using Dates,
       ZipFile,
       JSON,
       DataFrames,
-      ArchGDAL,
       CSV,
       ASCIIrasters
 
