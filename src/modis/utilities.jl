@@ -213,7 +213,7 @@ function _maybe_prepare_params(xllcorner::Real, yllcorner::Real, nrows::Int, cel
         yll, xll = sin_to_ll(xllcorner, yllcorner)
 
         # convert cell size in meters to degrees in lat and lon directions
-        dy, dx = meters_to_latlon(cellsize, lat) # watch out, this is a Tuple{Float64, Float64}
+        dy, dx = meters_to_latlon(cellsize, yll) # watch out, this is a Tuple{Float64, Float64}
 
         pars = [xll, yll, dx, dy]
         # store in file
@@ -268,7 +268,7 @@ function process_subset(T::Type{<:ModisProduct}, df::DataFrame)
 
             mat = Matrix{Float64}(undef, nrows, ncols)
 
-            filepath = rasterpath(T, bands[b]; lat = gt[4], lon = gt[1], date = dates[d])
+            filepath = rasterpath(T, bands[b]; lat = pars[:yll], lon = pars[:xll], date = dates[d])
 
             # fill matrix row by row
             count = 1
