@@ -287,7 +287,7 @@ end
 
 function rastername(T::Type{<:ModisProduct}; kwargs...)
     check_kwargs(T; kwargs...)
-    name = "$(round(kwargs[:lat], digits = 4))_$(round(kwargs[:lon], digits = 4))_$(kwargs[:date]).tif"
+    name = "$(round(kwargs[:lat], digits = 4))_$(round(kwargs[:lon], digits = 4))_$(kwargs[:date]).asc"
     return name
 end
 
